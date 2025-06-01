@@ -15,8 +15,6 @@ node_modules/
 .idea/
 
 # 忽略构建脚本
-build.sh
-build.bat
 README.md
 
 # 忽略 Docker 相关文件（避免递归复制）

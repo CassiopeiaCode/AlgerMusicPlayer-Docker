@@ -1,13 +1,9 @@
 services:
   alger-music-player:
     volumes:
-      # 开发时挂载本地代码目录（如果存在）
-      - "./frontend:/app/frontend:cached"    # 前端代码热重载
-      - "./api:/app/api:cached"              # API代码热重载
-      # 保持 node_modules 在容器内，避免平台兼容性问题
-      - "frontend_modules:/app/frontend/node_modules"
-      - "api_modules:/app/api/node_modules"
+      - "./frontend:/app/frontend:cached"
+      - "./api:/app/api:cached"
     environment:
       - NODE_ENV=development
-      - CHOKIDAR_USEPOLLING=true  # 支持文件变化检测
-      - DEV_MODE=true  # 标识开发模式
+      - CHOKIDAR_USEPOLLING=true
+      - DEV_MODE=true
