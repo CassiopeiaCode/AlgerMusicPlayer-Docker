@@ -11,7 +11,7 @@ WORKDIR /app
 RUN git clone https://github.com/algerkong/AlgerMusicPlayer.git frontend
 
 # 克隆 API 项目
-RUN git clone https://github.com/Binaryify/NeteaseCloudMusicApi.git api
+RUN git clone https://github.com/nooblong/NeteaseCloudMusicApiBackup.git api
 
 # 安装前端依赖
 WORKDIR /app/frontend
