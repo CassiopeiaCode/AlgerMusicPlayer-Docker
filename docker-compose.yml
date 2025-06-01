@@ -11,12 +11,22 @@ services:
       - "5173:5173"    # 前端开发服务器端口
       - "3000:3000"    # API 端口
     volumes:
-      - "./data:/data"  # 使用本地 ./data 目录
+      - "./data:/data"              # 数据目录
+      - "frontend_code:/app/frontend"  # 前端代码持久化
+      - "api_code:/app/api"           # API代码持久化
+      - "frontend_modules:/app/frontend/node_modules"  # 前端依赖缓存
+      - "api_modules:/app/api/node_modules"            # API依赖缓存
     restart: unless-stopped
     environment:
       - NODE_ENV=development
     networks:
       - alger-music-network
+
+volumes:
+  frontend_code:
+  api_code:
+  frontend_modules:
+  api_modules:
 
 networks:
   alger-music-network:

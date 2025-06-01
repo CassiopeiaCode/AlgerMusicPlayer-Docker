@@ -1,0 +1,50 @@
+# 生产环境多阶段构建
+FROM node:18-alpine as builder
+
+# 安装构建依赖
+RUN apk add --no-cache git python3 make g++
+
+WORKDIR /app
+
+# 克隆并构建前端
+RUN git clone https://github.com/algerkong/AlgerMusicPlayer.git frontend
+WORKDIR /app/frontend
+RUN npm ci --only=production && npm run build
+
+# 克隆API
+WORKDIR /app
+RUN git clone https://github.com/nooblong/NeteaseCloudMusicApiBackup.git api
+WORKDIR /app/api
+RUN npm ci --only=production
+
+# 生产运行阶段
+FROM nginx:alpine
+
+# 安装 Node.js 和 supervisor
+RUN apk add --no-cache nodejs npm supervisor && \
+    rm -rf /var/cache/apk/*
+
+# 复制构建产物
+COPY --from=builder /app/frontend/dist /usr/share/nginx/html
+COPY --from=builder /app/api /app/api
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY supervisord.prod.conf /etc/supervisor/conf.d/supervisord.conf
+
+# 创建必要目录
+RUN mkdir -p /var/log/supervisor /data
+
+# 设置环境变量
+ENV NODE_ENV=production
+
+# 暴露端口
+EXPOSE 80
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost || exit 1
+
+# 启动脚本
+COPY entrypoint.prod.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+CMD ["/entrypoint.sh"]
