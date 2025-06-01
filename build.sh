@@ -13,7 +13,7 @@ BUILD_ENV=${1:-dev}
 
 if [ "$BUILD_ENV" = "prod" ]; then
     echo "📦 构建生产环境镜像..."
-    docker-compose -f docker-compose.prod.yml build --no-cache
+    docker build -f Dockerfile.prod -t alger-music-player:prod .
     if [ $? -eq 0 ]; then
         echo "✅ 生产镜像构建成功！"
         echo "🏭 启动命令: make prod"

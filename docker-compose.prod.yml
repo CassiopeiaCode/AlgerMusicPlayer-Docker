@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   alger-music-player-prod:
     build:
