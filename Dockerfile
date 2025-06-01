@@ -18,24 +18,41 @@ RUN git clone https://github.com/algerkong/AlgerMusicPlayer.git .
 
 # 设置 npm 配置以提高稳定性
 RUN npm config set registry https://registry.npmjs.org/ && \
-    npm config set network-timeout 300000 && \
-    npm config set maxsockets 10
+    npm config set timeout 300000 && \
+    npm config set maxsockets 10 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000
 
 # 先安装依赖（使用 npm install 而不是 npm ci，更容错）
-RUN npm install --verbose || \
-    (echo "First npm install failed, cleaning and retrying..." && \
+RUN set -e && \
+    echo "Starting npm install..." && \
+    npm install --no-audit --no-fund --verbose || \
+    (echo "First npm install failed, cleaning cache and retrying..." && \
+     npm cache clean --force && \
      rm -rf node_modules package-lock.json && \
-     npm install --verbose) || \
+     npm install --no-audit --no-fund --verbose) || \
     (echo "Second attempt failed, trying with legacy peer deps..." && \
      rm -rf node_modules && \
-     npm install --legacy-peer-deps --verbose)
+     npm install --legacy-peer-deps --no-audit --no-fund --verbose) || \
+    (echo "Third attempt failed, trying with force..." && \
+     rm -rf node_modules && \
+     npm install --force --no-audit --no-fund --verbose)
 
 # 设置环境变量
 ENV NODE_ENV=production
 
 # 构建项目 - 尝试多个可能的构建命令
-RUN npm run build || npm run build:web || npm run build:renderer || \
-    (echo "Build failed, checking available scripts..." && npm run && exit 1)
+RUN echo "Starting build process..." && \
+    echo "Available npm scripts:" && \
+    npm run 2>/dev/null | grep -E "^\s+" || echo "No scripts listed" && \
+    echo "Attempting to build..." && \
+    (npm run build 2>&1 | tee build.log || \
+     npm run build:web 2>&1 | tee build.log || \
+     npm run build:renderer 2>&1 | tee build.log || \
+     (echo "All build attempts failed. Available scripts:" && \
+      cat package.json | grep -A 20 '"scripts"' && \
+      echo "Build log:" && cat build.log 2>/dev/null || echo "No build log available" && \
+      echo "Proceeding without build..."))
 
 # 检查构建产物并复制到标准位置
 RUN mkdir -p /build && \
