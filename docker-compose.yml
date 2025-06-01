@@ -34,3 +34,4 @@ networks:
 volumes:
   # 如果需要持久化数据，可以添加卷
   alger-data:
+    driver: local

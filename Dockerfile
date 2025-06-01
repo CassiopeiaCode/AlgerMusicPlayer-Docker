@@ -10,27 +10,49 @@ RUN apk add --no-cache \
     python3 \
     make \
     g++ \
-    curl
+    curl \
+    libc6-compat
 
 # 克隆 AlgerMusicPlayer 项目
 RUN git clone https://github.com/algerkong/AlgerMusicPlayer.git .
 
-# 复制 package 文件并安装依赖
-RUN npm ci --only=production=false --silent
+# 设置 npm 配置以提高稳定性
+RUN npm config set registry https://registry.npmjs.org/ && \
+    npm config set network-timeout 300000 && \
+    npm config set maxsockets 10
+
+# 先安装依赖（使用 npm install 而不是 npm ci，更容错）
+RUN npm install --verbose || \
+    (echo "First npm install failed, cleaning and retrying..." && \
+     rm -rf node_modules package-lock.json && \
+     npm install --verbose) || \
+    (echo "Second attempt failed, trying with legacy peer deps..." && \
+     rm -rf node_modules && \
+     npm install --legacy-peer-deps --verbose)
 
 # 设置环境变量
 ENV NODE_ENV=production
 
 # 构建项目 - 尝试多个可能的构建命令
-RUN npm run build || npm run build:web || npm run build:renderer
+RUN npm run build || npm run build:web || npm run build:renderer || \
+    (echo "Build failed, checking available scripts..." && npm run && exit 1)
 
 # 检查构建产物并复制到标准位置
 RUN mkdir -p /build && \
     (cp -r out/renderer/* /build/ 2>/dev/null || \
      cp -r dist/* /build/ 2>/dev/null || \
      cp -r build/* /build/ 2>/dev/null || \
-     echo "No build output found, creating basic index.html" && \
-     echo '<!DOCTYPE html><html><head><title>AlgerMusicPlayer</title></head><body><h1>Building...</h1></body></html>' > /build/index.html)
+     (echo "No standard build output found, searching for built files..." && \
+      find . -name "*.html" -path "*/dist*" -o -path "*/build*" -o -path "*/out*" | head -1 | xargs -I {} cp -r "$(dirname {})"/* /build/ 2>/dev/null || \
+      echo "Creating fallback index.html" && \
+      echo '<!DOCTYPE html><html><head><title>AlgerMusicPlayer</title><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;text-align:center;padding:50px;}h1{color:#333;}</style></head><body><h1>🎵 AlgerMusicPlayer</h1><p>容器正在构建中，请稍候...</p><p>如果长时间显示此页面，请检查构建日志。</p></body></html>' > /build/index.html))
+
+# 确保至少有一个 index.html 文件
+RUN ls -la /build/ && \
+    if [ ! -f /build/index.html ]; then \
+        echo "Creating basic index.html..." && \
+        echo '<!DOCTYPE html><html><head><title>AlgerMusicPlayer</title></head><body><h1>AlgerMusicPlayer is starting...</h1></body></html>' > /build/index.html; \
+    fi
 
 # 第二阶段：生产阶段
 FROM nginx:alpine AS production
