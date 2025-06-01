@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  alger-music-player-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: alger-music-player:prod
+    container_name: alger-music-player-prod
+    ports:
+      - "80:80"        # 生产环境 Web 端口
+    volumes:
+      - "./data:/data"  # 数据持久化
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - alger-music-network-prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  alger-music-network-prod:
+    driver: bridge

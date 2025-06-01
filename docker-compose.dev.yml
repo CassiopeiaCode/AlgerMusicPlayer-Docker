@@ -3,9 +3,22 @@ version: '3.8'
 services:
   alger-music-player:
     volumes:
-      # 开发时直接挂载本地代码目录（如果存在）
-      - "./frontend:/app/frontend:cached"    # 前端代码热重载
-      - "./api:/app/api:cached"              # API代码热重载
+      # 开发时挂载本地代码目录（如果存在的话）
+      # 如果本地没有这些目录，容器会自动克隆代码
+      - type: bind
+        source: ./frontend
+        target: /app/frontend
+        bind:
+          create_host_path: true
+      - type: bind
+        source: ./api
+        target: /app/api
+        bind:
+          create_host_path: true
+      # 保持 node_modules 在容器内，避免平台兼容性问题
+      - "frontend_modules:/app/frontend/node_modules"
+      - "api_modules:/app/api/node_modules"
     environment:
       - NODE_ENV=development
       - CHOKIDAR_USEPOLLING=true  # 支持文件变化检测
+      - DEV_MODE=true  # 标识开发模式

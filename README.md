@@ -258,27 +258,188 @@ docker-compose up -d --build --force-recreate
 
 ## 手动 Docker 命令
 
-如果不想使用 docker-compose，也可以直接使用 Docker 命令：
+## 🐳 Docker 原生命令
 
+如果不使用 docker-compose，可以直接使用 Docker 命令：
+
+### 开发环境
 ```bash
-# 构建镜像
-docker build -t alger-music-player .
+# 构建开发镜像
+docker build -t alger-music-player:dev .
 
-# 运行容器
+# 运行开发容器
 docker run -d \
-  --name alger-music-player \
+  --name alger-music-player-dev \
   -p 5173:5173 \
   -p 3000:3000 \
   -v ./data:/data \
+  -v alger_frontend:/app/frontend \
+  -v alger_api:/app/api \
   --restart unless-stopped \
-  alger-music-player
+  alger-music-player:dev
 ```
 
-## 管理容器
-
+### 生产环境
 ```bash
-# 查看服务状态
+# 构建生产镜像
+docker build -f Dockerfile.prod -t alger-music-player:prod .
+
+# 运行生产容器
+docker run -d \
+  --name alger-music-player-prod \
+  -p 80:80 \
+  -v ./data:/data \
+  --restart unless-stopped \
+  alger-music-player:prod
+```
+
+## 🔍 故障排查
+
+### 常见问题
+
+#### 1. 端口冲突
+```bash
+# 查看端口占用
+netstat -tlnp | grep :5173
+netstat -tlnp | grep :3000
+
+# 修改端口映射
+# 在 docker-compose.yml 中修改 ports 配置
+```
+
+#### 2. 容器启动失败
+```bash
+# 查看容器日志
+docker-compose logs alger-music-player
+
+# 查看容器状态
 docker-compose ps
+
+# 重新构建
+docker-compose up -d --build --force-recreate
+```
+
+#### 3. 代码热重载不生效
+```bash
+# 确保使用开发环境配置
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# 检查文件挂载
+docker exec -it alger-music-player ls -la /app/frontend
+```
+
+#### 4. API 无法访问
+```bash
+# 检查 API 服务状态
+curl http://localhost:3000
+
+# 查看 API 日志
+docker-compose logs alger-music-player | grep api
+```
+
+### 性能优化建议
+
+1. **开发环境**：使用 `make dev-hot` 启用热重载
+2. **生产环境**：使用 `make build-prod` 构建优化镜像
+3. **依赖缓存**：不要删除 Docker volumes 以保持缓存
+4. **内存配置**：确保 Docker 分配足够内存（推荐 4GB+）
+
+## 📚 进阶使用
+
+### 🔄 持续集成/部署
+
+#### GitHub Actions 示例
+```yaml
+# .github/workflows/docker.yml
+name: Docker Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Build Development Image
+      run: make build
+      
+    - name: Build Production Image  
+      run: make build-prod
+      
+    - name: Test Application
+      run: |
+        make dev
+        sleep 30
+        curl -f http://localhost:5173 || exit 1
+```
+
+### 🎯 生产部署建议
+
+#### 1. 使用外部数据库
+```yaml
+# docker-compose.prod.yml
+services:
+  alger-music-player:
+    environment:
+      - DB_HOST=your-db-host
+      - DB_PORT=5432
+      - DB_NAME=alger_music
+```
+
+#### 2. 配置反向代理
+```nginx
+# /etc/nginx/sites-available/alger-music
+server {
+    listen 80;
+    server_name your-domain.com;
+    
+    location / {
+        proxy_pass http://localhost:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+#### 3. 配置 HTTPS
+```bash
+# 使用 Let's Encrypt
+certbot --nginx -d your-domain.com
+```
+
+### 🔧 自定义配置
+
+#### 环境变量配置
+```bash
+# .env 文件
+NODE_ENV=production
+API_BASE_URL=https://your-api.com
+FRONTEND_PORT=5173
+API_PORT=3000
+```
+
+#### 高级 Docker Compose 配置
+```yaml
+# docker-compose.override.yml
+version: '3.8'
+services:
+  alger-music-player:
+    environment:
+      - CUSTOM_CONFIG=true
+    volumes:
+      - ./custom-config:/app/config
+    networks:
+      - external-network
+      
+networks:
+  external-network:
+    external: true
+```
 
 # 查看日志
 docker-compose logs -f alger-music-player
@@ -309,41 +470,110 @@ docker-compose up -d --build
 - 由于浏览器安全策略，部分功能可能需要 HTTPS
 - 某些音源可能需要额外的 API 服务支持
 
-## 目录结构
+## 📁 项目结构详解
 
 ```
 AlgerMusicPlayer-Docker/
-├── Dockerfile              # Docker 构建文件
-├── Dockerfile.prod         # 生产环境（多阶段构建）
-├── docker-compose.yml      # 基础配置
-├── docker-compose.dev.yml  # 开发环境覆盖
-├── supervisord.conf        # 开发环境进程管理
-├── supervisord.prod.conf   # 生产环境进程管理
-├── entrypoint.sh          # 开发环境启动脚本
-├── entrypoint.prod.sh     # 生产环境启动脚本
-├── Makefile               # 便捷管理命令
-└── nginx.conf             # 生产环境代理配置
+├── 🐳 Docker 相关
+│   ├── Dockerfile              # 开发环境构建文件（22行 vs 原52行）
+│   ├── Dockerfile.prod         # 生产环境多阶段构建
+│   ├── docker-compose.yml      # 基础服务配置
+│   ├── docker-compose.dev.yml  # 开发环境覆盖配置
+│   └── .dockerignore          # Docker 忽略文件
+├── ⚙️ 配置文件
+│   ├── supervisord.conf        # 开发环境进程管理
+│   ├── supervisord.prod.conf   # 生产环境进程管理
+│   ├── nginx.conf             # 生产环境代理配置
+│   ├── entrypoint.sh          # 开发环境启动脚本
+│   └── entrypoint.prod.sh     # 生产环境启动脚本
+├── 🛠️ 管理工具
+│   ├── Makefile               # Make 命令集合
+│   ├── build.sh               # Linux/macOS 构建脚本
+│   └── build.bat              # Windows 构建脚本
+├── 📊 数据目录
+│   └── data/                  # 本地数据持久化
+└── 📖 文档
+    ├── README.md              # 项目说明文档
+    └── REFACTOR.md            # 重构详细说明
 ```
 
-## 技术栈
+### 🔧 技术栈说明
 
-- **前端**: Vue 3 + TypeScript + Electron (Web 版本)
-- **构建工具**: Electron Vite
-- **容器**: Docker + Nginx
-- **音乐 API**: 网易云音乐 API
+| 组件 | 技术选型 | 版本 | 说明 |
+|------|----------|------|------|
+| **前端框架** | Vue 3 + TypeScript | 最新 | 现代化前端技术栈 |
+| **构建工具** | Vite | 4.x | 快速热重载开发 |
+| **后端 API** | Node.js + Express | 18.x | 网易云音乐 API 服务 |
+| **容器化** | Docker + Supervisor | 最新 | 多进程管理 |
+| **Web 服务器** | Nginx (生产环境) | Alpine | 静态资源服务 |
+| **进程管理** | Supervisor | 4.x | 服务进程监控 |
 
-## 贡献
+### 🚀 部署场景
 
-欢迎提交 Issue 和 Pull Request！
+#### 开发环境
+- **特点**：热重载、实时调试、详细日志
+- **适用**：本地开发、功能测试、调试排错
+- **启动**：`make dev-hot`
 
-## 许可证
+#### 生产环境
+- **特点**：多阶段构建、镜像优化、性能调优
+- **适用**：服务器部署、生产使用、性能优化
+- **启动**：`make build-prod`
 
-本项目遵循原项目的许可证。请注意：
+#### 快速体验
+- **特点**：一键启动、开箱即用、无需配置
+- **适用**：功能演示、快速体验、教学展示
+- **启动**：`make dev`
 
-⚠️ **免责声明**: 本软件仅用于学习交流，禁止用于商业用途，否则后果自负。
+## 🤝 贡献指南
 
-## 相关链接
+欢迎提交 Issue 和 Pull Request 来改进项目！
 
-- [原始项目](https://github.com/algerkong/AlgerMusicPlayer)
-- [在线演示](http://music.alger.fun/)
-- [项目文档](https://www.yuque.com/alger-pfg5q/ip4f1a/bmgmfmghnhgwghkm)
+### 参与贡献
+1. Fork 本项目
+2. 创建特性分支：`git checkout -b feature/amazing-feature`
+3. 提交更改：`git commit -m 'Add amazing feature'`
+4. 推送分支：`git push origin feature/amazing-feature`
+5. 提交 Pull Request
+
+### 开发环境搭建
+```bash
+# 1. 克隆项目
+git clone https://github.com/CassiopeiaCode/AlgerMusicPlayer-Docker
+cd AlgerMusicPlayer-Docker
+
+# 2. 启动开发环境
+make dev-hot
+
+# 3. 开始开发
+# 前端代码会自动热重载
+# 后端 API 修改需要重启容器
+```
+
+## 📄 许可证
+
+本项目基于 MIT 许可证开源 - 查看 [LICENSE](LICENSE) 文件了解详情
+
+## ⭐ 致谢
+
+- [algerkong/AlgerMusicPlayer](https://github.com/algerkong/AlgerMusicPlayer) - 原始项目
+- [nooblong/NeteaseCloudMusicApiBackup](https://github.com/nooblong/NeteaseCloudMusicApiBackup) - 网易云音乐 API
+- Docker 社区提供的优秀实践
+
+## 📞 联系方式
+
+- 项目 Issues: [GitHub Issues](https://github.com/CassiopeiaCode/AlgerMusicPlayer-Docker/issues)
+- 讨论交流: [GitHub Discussions](https://github.com/CassiopeiaCode/AlgerMusicPlayer-Docker/discussions)
+
+---
+
+<div align="center">
+
+### 🌟 如果这个项目对你有帮助，请给个 Star ⭐
+
+**重构优化版 - 让 Docker 部署更简单高效！**
+
+[![GitHub stars](https://img.shields.io/github/stars/CassiopeiaCode/AlgerMusicPlayer-Docker?style=social)](https://github.com/CassiopeiaCode/AlgerMusicPlayer-Docker/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/CassiopeiaCode/AlgerMusicPlayer-Docker?style=social)](https://github.com/CassiopeiaCode/AlgerMusicPlayer-Docker/network)
+
+</div>

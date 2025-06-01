@@ -9,7 +9,7 @@ WORKDIR /app
 # 克隆并构建前端
 RUN git clone https://github.com/algerkong/AlgerMusicPlayer.git frontend
 WORKDIR /app/frontend
-RUN npm ci --only=production && npm run build
+RUN npm ci && npm run build
 
 # 克隆API
 WORKDIR /app
@@ -21,17 +21,21 @@ RUN npm ci --only=production
 FROM nginx:alpine
 
 # 安装 Node.js 和 supervisor
-RUN apk add --no-cache nodejs npm supervisor && \
+RUN apk add --no-cache nodejs npm supervisor curl && \
     rm -rf /var/cache/apk/*
 
 # 复制构建产物
 COPY --from=builder /app/frontend/dist /usr/share/nginx/html
 COPY --from=builder /app/api /app/api
+
+# 复制配置文件
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY supervisord.prod.conf /etc/supervisor/conf.d/supervisord.conf
+COPY entrypoint.prod.sh /entrypoint.sh
 
-# 创建必要目录
-RUN mkdir -p /var/log/supervisor /data
+# 创建必要目录并设置权限
+RUN mkdir -p /var/log/supervisor /data && \
+    chmod +x /entrypoint.sh
 
 # 设置环境变量
 ENV NODE_ENV=production
@@ -43,8 +47,7 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost || exit 1
 
-# 启动脚本
-COPY entrypoint.prod.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# 创建数据目录挂载点
+VOLUME ["/data"]
 
 CMD ["/entrypoint.sh"]
