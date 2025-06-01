@@ -8,13 +8,13 @@ services:
     image: alger-music-player:latest
     container_name: alger-music-player
     ports:
-      - "3000:80"      # 前端访问端口
-      - "3001:3000"    # API 访问端口
+      - "5173:5173"    # 前端开发服务器端口
+      - "3000:3000"    # API 端口
     volumes:
       - "./data:/data"  # 使用本地 ./data 目录
     restart: unless-stopped
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
     networks:
       - alger-music-network
 

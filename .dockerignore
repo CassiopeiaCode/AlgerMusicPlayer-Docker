@@ -23,3 +23,6 @@ README.md
 Dockerfile
 docker-compose.yml
 .dockerignore
+
+# 忽略生产环境配置（开发模式不需要）
+nginx.conf
