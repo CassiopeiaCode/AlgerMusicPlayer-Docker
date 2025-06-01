@@ -1,0 +1,25 @@
+# 忽略构建过程中的临时文件
+node_modules/
+.git/
+.github/
+.gitignore
+.eslintrc.cjs
+.prettierrc.yaml
+.husky/
+*.log
+*.tmp
+
+# 忽略开发相关文件
+.env.*
+.vscode/
+.idea/
+
+# 忽略构建脚本
+build.sh
+build.bat
+README.md
+
+# 忽略 Docker 相关文件（避免递归复制）
+Dockerfile
+docker-compose.yml
+.dockerignore

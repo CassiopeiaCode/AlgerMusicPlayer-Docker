@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  alger-music-player:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: alger-music-player:latest
+    container_name: alger-music-player
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - alger-music-network
+
+  # 可选：如果需要后端API服务，可以添加这个服务
+  # netease-api:
+  #   image: node:18-alpine
+  #   container_name: netease-api
+  #   working_dir: /app
+  #   command: sh -c "git clone https://github.com/Binaryify/NeteaseCloudMusicApi.git . && npm install && npm start"
+  #   ports:
+  #     - "3001:3000"
+  #   restart: unless-stopped
+  #   networks:
+  #     - alger-music-network
+
+networks:
+  alger-music-network:
+    driver: bridge
+
+volumes:
+  # 如果需要持久化数据，可以添加卷
+  alger-data:
