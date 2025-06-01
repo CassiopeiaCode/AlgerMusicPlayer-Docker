@@ -17,7 +17,10 @@ if %errorlevel% equ 0 (
     echo ✅ 镜像构建成功！
     echo 🎵 运行以下命令启动服务：
     echo    docker-compose up -d
-    echo 🌐 访问地址: http://localhost:3000
+    echo 🌐 访问地址: 
+    echo    前端: http://localhost:3000
+    echo    API:  http://localhost:3001
+    echo 📁 数据目录: ./data (本地目录映射)
 ) else (
     echo ❌ 镜像构建失败
     pause

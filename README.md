@@ -16,6 +16,8 @@ AlgerMusicPlayer 是一个功能强大的第三方音乐播放器，支持网易
 - 🎨 沉浸式歌词显示和多主题支持
 - 🎼 高品质音乐和音乐下载
 - 🚀 全平台适配的 Web 版本
+- 🔌 内置网易云音乐 API 服务
+- 📁 本地数据存储支持
 
 ## 快速开始
 
@@ -46,12 +48,16 @@ docker-compose up -d --build
 ```
 
 3. **访问应用**
-打开浏览器访问：http://localhost:3000
+- 前端界面：http://localhost:3000
+- API 服务：http://localhost:3001
+- 数据存储：./data 目录（自动创建）
 
 ## Docker Compose 配置
 
 默认配置：
-- **端口映射**: 3000:80 (可在 docker-compose.yml 中修改)
+- **前端端口**: 3000:80 
+- **API 端口**: 3001:3000
+- **数据目录**: ./data (本地目录映射)
 - **重启策略**: unless-stopped
 - **网络**: 自定义桥接网络
 
@@ -61,8 +67,17 @@ docker-compose up -d --build
 
 ```yaml
 ports:
-  - "8080:80"  # 将 3000 改为你想要的端口
+  - "8080:80"     # 前端端口：将 3000 改为你想要的端口
+  - "8081:3000"   # API 端口：将 3001 改为你想要的端口
 ```
+
+### 数据持久化
+
+项目使用本地 `./data` 目录存储数据，包括：
+- 用户配置文件
+- 播放历史
+- 缓存文件
+- 其他应用数据
 
 ## 手动 Docker 命令
 
@@ -76,6 +91,8 @@ docker build -t alger-music-player .
 docker run -d \
   --name alger-music-player \
   -p 3000:80 \
+  -p 3001:3000 \
+  -v ./data:/data \
   --restart unless-stopped \
   alger-music-player
 ```
