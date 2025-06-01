@@ -97,31 +97,29 @@ WORKDIR /app/api
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # 创建 supervisor 配置文件
-RUN cat > /etc/supervisor/conf.d/supervisord.conf << 'EOF'
-[supervisord]
-nodaemon=true
-logfile=/var/log/supervisor/supervisord.log
-pidfile=/var/run/supervisord.pid
-user=root
-
-[program:nginx]
-command=nginx -g "daemon off;"
-autostart=true
-autorestart=true
-stderr_logfile=/var/log/supervisor/nginx.err.log
-stdout_logfile=/var/log/supervisor/nginx.out.log
-user=root
-
-[program:api]
-command=node app.js
-directory=/app/api
-autostart=true
-autorestart=true
-stderr_logfile=/var/log/supervisor/api.err.log
-stdout_logfile=/var/log/supervisor/api.out.log
-environment=NODE_ENV=production,PORT=3000
-user=root
-EOF
+RUN echo '[supervisord]' > /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'nodaemon=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'logfile=/var/log/supervisor/supervisord.log' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'pidfile=/var/run/supervisord.pid' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'user=root' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '[program:nginx]' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'command=nginx -g "daemon off;"' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autostart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autorestart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'stderr_logfile=/var/log/supervisor/nginx.err.log' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'stdout_logfile=/var/log/supervisor/nginx.out.log' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'user=root' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo '[program:api]' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'command=node app.js' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'directory=/app/api' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autostart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'autorestart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'stderr_logfile=/var/log/supervisor/api.err.log' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'stdout_logfile=/var/log/supervisor/api.out.log' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'environment=NODE_ENV=production,PORT=3000' >> /etc/supervisor/conf.d/supervisord.conf && \
+    echo 'user=root' >> /etc/supervisor/conf.d/supervisord.conf
 
 # 创建健康检查脚本
 RUN echo '#!/bin/sh' > /healthcheck.sh && \
